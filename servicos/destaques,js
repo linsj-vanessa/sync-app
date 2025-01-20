@@ -1,0 +1,85 @@
+const Destaque = require('../modelos/Destaque');
+const Fonte = require('../modelos/Fonte');
+const Tag = require('../modelos/Tag');
+
+
+const criarDestaque = async (dadosDestaque) => {
+     const { fonte, texto, anotacao, tags } = dadosDestaque;
+    let fonteDocumento = await Fonte.findOne({ nome: fonte.nome, tipo: fonte.tipo });
+     if (!fonteDocumento) {
+         fonteDocumento = new Fonte(fonte);
+         await fonteDocumento.save();
+     }
+
+     const tagsIds = [];
+     if (tags) {
+         for (const nomeTag of tags) {
+             let tag = await Tag.findOne({ nome: nomeTag });
+             if (!tag) {
+                 tag = new Tag({ nome: nomeTag });
+                 await tag.save();
+             }
+             tagsIds.push(tag._id);
+         }
+     }
+     const novoDestaque = new Destaque({ fonteId: fonteDocumento._id, texto, anotacao, tags: tagsIds });
+    return  await novoDestaque.save();
+
+};
+
+const obterDestaques = async () => {
+    return await Destaque.find().populate('fonteId').populate('tags');
+};
+
+const obterDestaquePorId = async (id) => {
+     const destaque = await Destaque.findById(id).populate('fonteId').populate('tags');
+      if (!destaque) {
+          throw new Error('Destaque não encontrado');
+      }
+      return destaque;
+};
+
+const atualizarDestaque = async (id, dadosDestaque) => {
+    const { fonte, texto, anotacao, tags } = dadosDestaque;
+        let fonteDocumento = await Fonte.findOne({ nome: fonte.nome, tipo: fonte.tipo });
+         if (!fonteDocumento) {
+             fonteDocumento = new Fonte(fonte);
+             await fonteDocumento.save();
+         }
+
+         const tagsIds = [];
+         if (tags) {
+             for (const nomeTag of tags) {
+                 let tag = await Tag.findOne({ nome: nomeTag });
+                 if (!tag) {
+                     tag = new Tag({ nome: nomeTag });
+                     await tag.save();
+                 }
+                 tagsIds.push(tag._id);
+             }
+         }
+    const destaqueAtualizado = await Destaque.findByIdAndUpdate(
+            id,
+            { fonteId: fonteDocumento._id, texto, anotacao, tags: tagsIds, atualizadoEm: Date.now() },
+            { new: true }
+        );
+      if (!destaqueAtualizado) {
+          throw new Error('Destaque não encontrado');
+      }
+      return destaqueAtualizado;
+};
+
+ const excluirDestaque = async (id) => {
+    const destaqueDeletado =  await Destaque.findByIdAndDelete(id);
+      if (!destaqueDeletado) {
+         throw new Error('Destaque não encontrado');
+      }
+      return { message: 'Destaque excluído com sucesso' };
+ };
+module.exports = {
+    criarDestaque,
+    obterDestaques,
+    obterDestaquePorId,
+    atualizarDestaque,
+    excluirDestaque,
+};
